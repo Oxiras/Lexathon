@@ -18,43 +18,59 @@
 	helpMsg:			.asciiz "############################################### HELP ###################################################\n"
 	gameHeader:			.asciiz "############################################ GAME RUNNING ##############################################\n"
 	instructionMsg1:		.asciiz "Lexathon is a word game where you must find as many words of four or more letters in the alloted time."
-	instructionMsg2:		.asciiz "\nEach word must contain the central letter exactly once, while other tiles can be used no more than once."
+	instructionMsg2:		.asciiz "\nEach word must contain the central letter exactly, while other tiles can be used no more than once."
 	instructionMsg3:		.asciiz "\nYou start each game with 60 seconds and finding a new word increases that time by 20 seconds."
 	instructionMsg4:		.asciiz "\nThe game ends when either:"
 	instructionMsg5:		.asciiz "\n\t- Time runs out, or"
-	instructionMsg6:		.asciiz "\n\t- You give up"
-	instructionMsg7:		.asciiz "\n\Scores are determined by both the percentage of words found and how quickly words are found."
+	instructionMsg6:		.asciiz "\n\t- You give up by typing X"
+	instructionMsg7:		.asciiz "\n\Scores are determined of rewarding 2 points per character in the correct word."
 	instructionMsg8:		.asciiz "\nSo find as many words as you can, as quickly as you can."
 	instructionMsg9:		.asciiz "\nHAVE FUN!!!"
 	instructionMsg10:		.asciiz "\nEnter any number to return: "
+	instructionMsg11:		.asciiz "\nType X to exit or S to shuffle."
 	newLine:			.asciiz	"\n"
 	
 	# Variables for displayGrid
 	emptyString: 			.asciiz "\n"
-	horizLine:			.asciiz "------\n"
+	horizLine:			.asciiz "\t---------\n"
 	vertLine:			.asciiz "|"
+	tabOver:			.asciiz "\t"
 	
 	# Variables for gameModule.asm
-	file:				.asciiz	"testwordlist.txt"
-	nineFile:			.asciiz "testfile.txt"
-	nineBuffer:			.space  71
-	buffer:				.space	1024
-	displayTime:			.asciiz "Time remaining: "
+	nineFile:			.asciiz "wordlistnine.txt"
+	nineBuffer:			.space  72			
+	displayTime:			.asciiz "\nTime remaining: "
 	timeOutMsg:			.asciiz	"\n############################################# ~TIME UP~ ################################################\n"
 	startTime:			.word	0
-	inputStr:			.space 10
 	displayWord:			.space 10
 	readErrorMsg: 			.asciiz "\nError in reading file.\n"
 	endFileRead:			.asciiz "\nEnd of file read"
-	inputPrompt:			.asciiz "\nEnter a word: "
-	#Buffer actually needs 1,135,342 characters for space for wordlist
+	pointTotal:			.asciiz "\nTotal Points: "
 	
 	# Variables for UserInput
-	strBuffer: 			.space 15
-	exitStr:			.asciiz "X\n"
-	shuffleStr:			.asciiz "S\n"
-	shuffling:			.asciiz "\nShuffling!!!\n"
+	inputStr:			.space 10
+	inputPrompt:			.asciiz "\nEnter a word: "
+	inputBuffer: 			.space 15
+	exitStr:			.asciiz "X"
+	shuffleStr:			.asciiz "S"
 	newLineStr:			.asciiz "\n"
+	notAWord:			.asciiz "\nSorry, that is not correct. Not a word, not correct length, not with middle character or already inputted word.\n"
+	isAWord:			.asciiz "\nValid Word!\n"
+	
+	# Variables for Checking Dictionary
+	inDictStr:			.asciiz "\nChecking...."
+	afterDict:			.asciiz "\nAfter Dictionary!\n"
+	prevWords:			.space 5000
+	fourFile:			.asciiz "wordlistfour.txt"
+	fourBuffer:			.space 	7
+	fiveFile:			.asciiz "wordlistfive.txt"
+	fiveBuffer:			.space 	8
+	sixFile:			.asciiz "wordlistsix.txt"
+	sixBuffer:			.space	9
+	sevenFile:			.asciiz "wordlistseven.txt"
+	sevenBuffer:			.space	10
+	eightFile:			.asciiz "wordlisteight.txt"
+	eightBuffer:			.space 	11
 	
 # Text Segment
 .text										# Instructions follow this line
@@ -62,6 +78,8 @@
 	# Prepocessing section ~ Following user header files are included ~
 	.include "gameModule.asm"
 	.include "validationModule.asm"
+	.include "timerAndPointModule.asm"
+	.include "checkDictionary.asm"
 
 	# Indicates start of the code
 	main:
@@ -110,14 +128,17 @@
 		# Continued
 		la	$a0, borderMsg
 		syscall
+		# Continued
+		la 	$a0, instructionMsg11
+		syscall
 		
-		jal	getDisplayWord	
-		jal	beginCountdown						# Start countdown timer
-		jal	checkTime						# Retrieve remaining time
-		jal	userInput						# Gets user input
-		j 	exit
+		jal	getDisplayWord				# Display Grid
+		jal	beginCountdown				# Start countdown timer
+		jal	checkTime				# Retrieve remaining time			
+		jal	userInput				# Gets user input
+		j exit
 
-#----------------------------------------------------------------------#
+#--------------------------------------------------------------#
 
 	# Display help instructions
 	help:
@@ -166,6 +187,16 @@
 		bne	$v0, -1, main
 	
 	exit:
+		# Display End Points
+		li 	$v0, 4
+		la 	$a0, pointTotal
+		syscall
+		li 	$v0, 1
+		addi 	$a0, $s4, 0
+		syscall
+		li	$v0, 4
+		la 	$a0, newLine
+		syscall
 		# Display Game over
 		li	$v0, 4
 		la	$a0, borderMsg
